@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const axios = require("axios");
 const express = require("express");
 const bodyParser = require("body-parser");
-const  Botly = require("botly");
+const Botly = require("botly");
 
 const genAI = new GoogleGenerativeAI('AIzaSyB9fVDozwTK3znlw4lRr8r9a0myTTYXUcw');
 const app = express();
@@ -14,7 +14,11 @@ const botly = new Botly({
 
 const chatusers = {};
 
-// Converts image URL to a GoogleGenerativeAI.Part object.
+function generateRandomIP() {
+  const octet = () => Math.floor(Math.random() * 256);
+  return `${octet()}.${octet()}.${octet()}.${octet()}`;
+}
+
 async function urlToGenerativePart(url, mimeType) {
   const response = await axios.get(url, { responseType: 'arraybuffer' });
   return {
@@ -26,6 +30,8 @@ async function urlToGenerativePart(url, mimeType) {
 }
 
 async function handleUserMessage(userId, message) {
+  const userIP = generateRandomIP();
+
   if (!chatusers[userId]) {
     chatusers[userId] = {
       model: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
@@ -33,15 +39,15 @@ async function handleUserMessage(userId, message) {
     };
 
     const userChatt = chatusers[userId];
-  userChatt.history.push({
-    role: "user",
-    parts: [{ text: 'انت الان إسمك أطلس، مساعد افتراضي تم تطويره بواسطة MoroccoAI، تذكر هذا طوال المحادثة، يعني حتى لو قلت لك من انت اصلا ستقول لي المعلومات التي قلتها لك.' }]
-  });
+    userChatt.history.push({
+      role: "user",
+      parts: [{ text: 'انت الان إسمك أطلس، مساعد افتراضي تم تطويره بواسطة MoroccoAI، تذكر هذا طوال المحادثة، يعني حتى لو قلت لك من انت اصلا ستقول لي المعلومات التي قلتها لك.' }]
+    });
 
-  userChatt.history.push({
-    role: "model",
-    parts: [{ text: 'أنت على حق! اسمي الشخصي "أطلس"، مساعد افتراضي تم تطويره بواسطة MoroccoAI. 😊 أنا سعيد بمساعدتك في أي شيء تحتاجه. هل هناك شيء محدد تريدني مساعدتك به اليوم؟' }]
-  });
+    userChatt.history.push({
+      role: "model",
+      parts: [{ text: 'أنت على حق! اسمي الشخصي "أطلس"، مساعد افتراضي تم تطويره بواسطة MoroccoAI. 😊 أنا سعيد بمساعدتك في أي شيء تحتاجه. هل هناك شيء محدد تريدني مساعدتك به اليوم؟' }]
+    });
   }
 
   const userChat = chatusers[userId];
@@ -57,7 +63,11 @@ async function handleUserMessage(userId, message) {
     },
   });
 
-  const result = await chat.sendMessage(message);
+  const result = await chat.sendMessage(message, {
+    headers: {
+      'X-Forwarded-For': userIP
+    }
+  });
   const text = await result.response.text();
 
   userChat.history.push({
@@ -69,6 +79,8 @@ async function handleUserMessage(userId, message) {
 }
 
 async function handleUserImage(userId, imageUrl) {
+  const userIP = generateRandomIP();
+
   if (!chatusers[userId]) {
     chatusers[userId] = {
       model: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
@@ -84,7 +96,11 @@ async function handleUserImage(userId, imageUrl) {
   });
 
   const prompt = "ماذا ترى في هذه الصورة؟";
-  const result = await userChat.model.generateContent([prompt, imagePart]);
+  const result = await userChat.model.generateContent([prompt, imagePart], {
+    headers: {
+      'X-Forwarded-For': userIP
+    }
+  });
   const text = await result.response.text();
 
   userChat.history.push({
@@ -98,12 +114,11 @@ async function handleUserImage(userId, imageUrl) {
 botly.on("message", async (senderId, message, data) => {
   if (data && data.text) {
     const response = await handleUserMessage(senderId, data.text);
-    console.log(response)
+    console.log(response);
     botly.sendText({ id: senderId, text: response });
   } else if (message.message.attachments[0].type == "image") {
-    const attachment = message.message.attachments[0] 
-            const imageUrl = attachment.payload.url;
-    // const imageUrl = data.attachments[0].payload.url;
+    const attachment = message.message.attachments[0];
+    const imageUrl = attachment.payload.url;
     const response = await handleUserImage(senderId, imageUrl);
     botly.sendText({ id: senderId, text: response });
   }
