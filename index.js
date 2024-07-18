@@ -7,15 +7,25 @@ const Botly = require("botly");
 const apiKeys = [
   'AIzaSyB9fVDozwTK3znlw4lRr8r9a0myTTYXUcw',
   'AIzaSyAgTZ_YZ3ima5A6KdMvMTPTBIMD3BLhAus',
-  'AIzaSyAwBXW_RnyLhlflf-oizqAqQKormxNKWWA',
+  
+'AIzaSyAwBXW_RnyLhlflf-oizqAqQKormxNKWWA',
   'AIzaSyAyLhyj_UbiQ9XOSg7Dt2QDOecANiU0YLw',
   'AIzaSyDyUnrvyU5fSroBqM4p8E79Yb1C05uACmY',
   'AIzaSyBdx1mZYsQ0AI8A2hkoiFAuk2a2lLllLPc',
-  'AIzaSyAQ9CrPSA3ABOuLF4WlMTXnS-u1gbL9nlQ',
-  'AIzaSyAvGJRWTN7L7yh-LSj_XFC0bWHWmyhAe_8',
+  
+'AIzaSyAQ9CrPSA3ABOuLF4WlMTXnS-u1gbL9nlQ',
+  
+'AIzaSyAvGJRWTN7L7yh-LSj_XFC0bWHWmyhAe_8',
   'AIzaSyCnHCt6or_D65S0bmKIsGe_3T2Z2KPgspI',
-  'AIzaSyBTWReK-B3-Q0sZxYXJ3uWwbk8n7Qymxu0',
-  'AIzaSyCLxHxwZ7uTyaXwOapTfh30N3CLe7tV7jg'
+  
+'AIzaSyBTWReK-B3-Q0sZxYXJ3uWwbk8n7Qymxu0',
+  'AIzaSyCLxHxwZ7uTyaXwOapTfh30N3CLe7tV7jg',
+  
+'AIzaSyDlctKgcANsI8Dnaj6_u7hdh9EnlfJFyZM',
+
+'AIzaSyB9fVDozwTK3znlw4lRr8r9a0myTTYXUcw',
+  
+'AIzaSyA3jLE1EFQGPSwGx_X2_zb20RYy3Cyb5ik'
 ];
 let currentApiKeyIndex = 0;
 
@@ -82,6 +92,9 @@ async function handleUserMessage(userId, message) {
   });
 
   try {
+    const genAI = new GoogleGenerativeAI(apiKeys[currentApiKeyIndex]);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
     const chat = model.startChat({
       history: userChat.history,
       generationConfig: {
@@ -104,8 +117,14 @@ async function handleUserMessage(userId, message) {
     return text;
   } catch (error) {
     console.error('حدث خطأ أثناء معالجة رسالة المستخدم:', error);
-    throw new Error('حدث خطأ أثناء معالجة رسالتك. الرجاء المحاولة مرة أخرى.');
+
+// التبديل إلى مفتاح API القادم في حالة الخطأ
+    currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+
+// إعادة المحاولة باستخدام المفتاح الجديد
+    return handleUserMessage(userId, message);
   }
+
 }
 
 async function handleUserImage(userId, imageUrl) {
@@ -121,6 +140,9 @@ async function handleUserImage(userId, imageUrl) {
 
   const userChat = chatusers[userId];
   try {
+    const genAI = new GoogleGenerativeAI(apiKeys[currentApiKeyIndex]);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
     const imagePart = await urlToGenerativePart(imageUrl, "image/jpeg");
     userChat.history.push({
       role: "user",
@@ -143,7 +165,12 @@ async function handleUserImage(userId, imageUrl) {
     return text;
   } catch (error) {
     console.error('حدث خطأ أثناء معالجة صورة المستخدم:', error);
-    throw new Error('حدث خطأ أثناء معالجة صورتك. الرجاء المحاولة مرة أخرى.');
+
+// التبديل إلى مفتاح API القادم في حالة الخطأ
+    currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+
+ // إعادة المحاولة باستخدام المفتاح الجديد
+    return handleUserImage(userId, imageUrl);
   }
 }
 
