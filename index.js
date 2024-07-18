@@ -5,17 +5,18 @@ const bodyParser = require("body-parser");
 const Botly = require("botly");
 
 const apiKeys = [
-'AIzaSyB9fVDozwTK3znlw4lRr8r9a0myTTYXUcw',
-'AIzaSyAgTZ_YZ3ima5A6KdMvMTPTBIMD3BLhAus',
-'AIzaSyAwBXW_RnyLhlflf-oizqAqQKormxNKWWA',
-'AIzaSyAyLhyj_UbiQ9XOSg7Dt2QDOecANiU0YLw',
-'AIzaSyDyUnrvyU5fSroBqM4p8E79Yb1C05uACmY',
-'AIzaSyBdx1mZYsQ0AI8A2hkoiFAuk2a2lLllLPc',
-'AIzaSyAQ9CrPSA3ABOuLF4WlMTXnS-u1gbL9nlQ',
-'AIzaSyAvGJRWTN7L7yh-LSj_XFC0bWHWmyhAe_8',
-'AIzaSyCnHCt6or_D65S0bmKIsGe_3T2Z2KPgspI',
-'AIzaSyBTWReK-B3-Q0sZxYXJ3uWwbk8n7Qymxu0',
-'AIzaSyCLxHxwZ7uTyaXwOapTfh30N3CLe7tV7jg'];
+  'AIzaSyB9fVDozwTK3znlw4lRr8r9a0myTTYXUcw',
+  'AIzaSyAgTZ_YZ3ima5A6KdMvMTPTBIMD3BLhAus',
+  'AIzaSyAwBXW_RnyLhlflf-oizqAqQKormxNKWWA',
+  'AIzaSyAyLhyj_UbiQ9XOSg7Dt2QDOecANiU0YLw',
+  'AIzaSyDyUnrvyU5fSroBqM4p8E79Yb1C05uACmY',
+  'AIzaSyBdx1mZYsQ0AI8A2hkoiFAuk2a2lLllLPc',
+  'AIzaSyAQ9CrPSA3ABOuLF4WlMTXnS-u1gbL9nlQ',
+  'AIzaSyAvGJRWTN7L7yh-LSj_XFC0bWHWmyhAe_8',
+  'AIzaSyCnHCt6or_D65S0bmKIsGe_3T2Z2KPgspI',
+  'AIzaSyBTWReK-B3-Q0sZxYXJ3uWwbk8n7Qymxu0',
+  'AIzaSyCLxHxwZ7uTyaXwOapTfh30N3CLe7tV7jg'
+];
 let currentApiKeyIndex = 0;
 
 function getNextApiKey() {
@@ -54,21 +55,21 @@ async function urlToGenerativePart(url, mimeType) {
 
 async function handleUserMessage(userId, message) {
   const userIP = generateRandomIP();
+  const genAI = new GoogleGenerativeAI(getNextApiKey());
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   if (!chatusers[userId]) {
-    const genAI = new GoogleGenerativeAI(getNextApiKey());
     chatusers[userId] = {
-      model: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
       history: []
     };
 
-    const userChatt = chatusers[userId];
-    userChatt.history.push({
+    const userChat = chatusers[userId];
+    userChat.history.push({
       role: "user",
       parts: [{ text: 'انت الان إسمك أطلس، مساعد افتراضي تم تطويره بواسطة MoroccoAI، تذكر هذا طوال المحادثة، يعني حتى لو قلت لك من انت اصلا ستقول لي المعلومات التي قلتها لك.' }]
     });
 
-    userChatt.history.push({
+    userChat.history.push({
       role: "model",
       parts: [{ text: 'أنت على حق! اسمي الشخصي "أطلس"، مساعد افتراضي تم تطويره بواسطة MoroccoAI. 😊 أنا سعيد بمساعدتك في أي شيء تحتاجه. هل هناك شيء محدد تريدني مساعدتك به اليوم؟' }]
     });
@@ -81,7 +82,7 @@ async function handleUserMessage(userId, message) {
   });
 
   try {
-    const chat = userChat.model.startChat({
+    const chat = model.startChat({
       history: userChat.history,
       generationConfig: {
         maxOutputTokens: 1500,
@@ -109,11 +110,11 @@ async function handleUserMessage(userId, message) {
 
 async function handleUserImage(userId, imageUrl) {
   const userIP = generateRandomIP();
+  const genAI = new GoogleGenerativeAI(getNextApiKey());
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   if (!chatusers[userId]) {
-    const genAI = new GoogleGenerativeAI(getNextApiKey());
     chatusers[userId] = {
-      model: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
       history: []
     };
   }
@@ -127,7 +128,7 @@ async function handleUserImage(userId, imageUrl) {
     });
 
     const prompt = "ماذا ترى في هذه الصورة؟";
-    const result = await userChat.model.generateContent([prompt, imagePart], {
+    const result = await model.generateContent([prompt, imagePart], {
       headers: {
         'X-Forwarded-For': userIP
       }
