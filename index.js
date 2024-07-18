@@ -4,7 +4,26 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const Botly = require("botly");
 
-const genAI = new GoogleGenerativeAI('AIzaSyB9fVDozwTK3znlw4lRr8r9a0myTTYXUcw');
+const apiKeys = [
+'AIzaSyB9fVDozwTK3znlw4lRr8r9a0myTTYXUcw',
+'AIzaSyAgTZ_YZ3ima5A6KdMvMTPTBIMD3BLhAus',
+'AIzaSyAwBXW_RnyLhlflf-oizqAqQKormxNKWWA',
+'AIzaSyAyLhyj_UbiQ9XOSg7Dt2QDOecANiU0YLw',
+'AIzaSyDyUnrvyU5fSroBqM4p8E79Yb1C05uACmY',
+'AIzaSyBdx1mZYsQ0AI8A2hkoiFAuk2a2lLllLPc',
+'AIzaSyAQ9CrPSA3ABOuLF4WlMTXnS-u1gbL9nlQ',
+'AIzaSyAvGJRWTN7L7yh-LSj_XFC0bWHWmyhAe_8',
+'AIzaSyCnHCt6or_D65S0bmKIsGe_3T2Z2KPgspI',
+'AIzaSyBTWReK-B3-Q0sZxYXJ3uWwbk8n7Qymxu0',
+'AIzaSyCLxHxwZ7uTyaXwOapTfh30N3CLe7tV7jg'];
+let currentApiKeyIndex = 0;
+
+function getNextApiKey() {
+  const apiKey = apiKeys[currentApiKeyIndex];
+  currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+  return apiKey;
+}
+
 const app = express();
 app.use(bodyParser.json());
 const botly = new Botly({
@@ -20,19 +39,24 @@ function generateRandomIP() {
 }
 
 async function urlToGenerativePart(url, mimeType) {
-  const response = await axios.get(url, { responseType: 'arraybuffer' });
-  return {
-    inlineData: {
-      data: Buffer.from(response.data).toString("base64"),
-      mimeType
-    },
-  };
+  try {
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    return {
+      inlineData: {
+        data: Buffer.from(response.data).toString("base64"),
+        mimeType
+      },
+    };
+  } catch (error) {
+    throw new Error('حدث خطأ أثناء جلب الصورة.');
+  }
 }
 
 async function handleUserMessage(userId, message) {
   const userIP = generateRandomIP();
 
   if (!chatusers[userId]) {
+    const genAI = new GoogleGenerativeAI(getNextApiKey());
     chatusers[userId] = {
       model: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
       history: []
@@ -56,32 +80,38 @@ async function handleUserMessage(userId, message) {
     parts: [{ text: message }]
   });
 
-  const chat = userChat.model.startChat({
-    history: userChat.history,
-    generationConfig: {
-      maxOutputTokens: 1500,
-    },
-  });
+  try {
+    const chat = userChat.model.startChat({
+      history: userChat.history,
+      generationConfig: {
+        maxOutputTokens: 1500,
+      },
+    });
 
-  const result = await chat.sendMessage(message, {
-    headers: {
-      'X-Forwarded-For': userIP
-    }
-  });
-  const text = await result.response.text();
+    const result = await chat.sendMessage(message, {
+      headers: {
+        'X-Forwarded-For': userIP
+      }
+    });
+    const text = await result.response.text();
 
-  userChat.history.push({
-    role: "model",
-    parts: [{ text }]
-  });
+    userChat.history.push({
+      role: "model",
+      parts: [{ text }]
+    });
 
-  return text;
+    return text;
+  } catch (error) {
+    console.error('حدث خطأ أثناء معالجة رسالة المستخدم:', error);
+    throw new Error('حدث خطأ أثناء معالجة رسالتك. الرجاء المحاولة مرة أخرى.');
+  }
 }
 
 async function handleUserImage(userId, imageUrl) {
   const userIP = generateRandomIP();
 
   if (!chatusers[userId]) {
+    const genAI = new GoogleGenerativeAI(getNextApiKey());
     chatusers[userId] = {
       model: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
       history: []
@@ -89,38 +119,47 @@ async function handleUserImage(userId, imageUrl) {
   }
 
   const userChat = chatusers[userId];
-  const imagePart = await urlToGenerativePart(imageUrl, "image/jpeg");
-  userChat.history.push({
-    role: "user",
-    parts: [imagePart]
-  });
+  try {
+    const imagePart = await urlToGenerativePart(imageUrl, "image/jpeg");
+    userChat.history.push({
+      role: "user",
+      parts: [imagePart]
+    });
 
-  const prompt = "ماذا ترى في هذه الصورة؟";
-  const result = await userChat.model.generateContent([prompt, imagePart], {
-    headers: {
-      'X-Forwarded-For': userIP
-    }
-  });
-  const text = await result.response.text();
+    const prompt = "ماذا ترى في هذه الصورة؟";
+    const result = await userChat.model.generateContent([prompt, imagePart], {
+      headers: {
+        'X-Forwarded-For': userIP
+      }
+    });
+    const text = await result.response.text();
 
-  userChat.history.push({
-    role: "model",
-    parts: [{ text }]
-  });
+    userChat.history.push({
+      role: "model",
+      parts: [{ text }]
+    });
 
-  return text;
+    return text;
+  } catch (error) {
+    console.error('حدث خطأ أثناء معالجة صورة المستخدم:', error);
+    throw new Error('حدث خطأ أثناء معالجة صورتك. الرجاء المحاولة مرة أخرى.');
+  }
 }
 
 botly.on("message", async (senderId, message, data) => {
-  if (data && data.text) {
-    const response = await handleUserMessage(senderId, data.text);
-    console.log(response);
-    botly.sendText({ id: senderId, text: response });
-  } else if (message.message.attachments[0].type == "image") {
-    const attachment = message.message.attachments[0];
-    const imageUrl = attachment.payload.url;
-    const response = await handleUserImage(senderId, imageUrl);
-    botly.sendText({ id: senderId, text: response });
+  try {
+    if (data && data.text) {
+      const response = await handleUserMessage(senderId, data.text);
+      console.log(response);
+      botly.sendText({ id: senderId, text: response });
+    } else if (message.message.attachments[0].type == "image") {
+      const attachment = message.message.attachments[0];
+      const imageUrl = attachment.payload.url;
+      const response = await handleUserImage(senderId, imageUrl);
+      botly.sendText({ id: senderId, text: response });
+    }
+  } catch (error) {
+    botly.sendText({ id: senderId, text: error.message });
   }
 });
 
