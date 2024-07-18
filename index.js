@@ -4,7 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const  Botly = require("botly");
 
-const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+const genAI = new GoogleGenerativeAI('AIzaSyB9fVDozwTK3znlw4lRr8r9a0myTTYXUcw');
 const app = express();
 app.use(bodyParser.json());
 const botly = new Botly({
