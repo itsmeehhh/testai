@@ -1,0 +1,23 @@
+{
+  "name": "tstcodsjs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/text-to-speech": "^5.3.0",
+    "@google/generative-ai": "^0.15.0",
+    "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
+    "botly": "^1.6.2",
+    "express": "^4.19.2",
+    "gtts": "^0.2.1",
+    "request": "^2.88.2",
+    "user-agents": "^1.1.258"
+  }
+}
