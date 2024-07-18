@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 const app = express();
 app.use(bodyParser.json());
 const botly = new Botly({
-  accessToken: 'EAADzMPtDni4BOxj4ZBO23bVyXlFq3Nq5yEJqDM12e9RTgwgYYeZCZAF6Xmg521bEPZBkZBrZCbEqWdrxa7AdGQZCIq6k6cVM4UHtC1pDZAOKj5jBhWZACToyQ396RdT32zawhDswLeJc5xXfZBy3NZAhhMpvGNcwa7zPaZBA3x1CjPZCvaIH8GDEFC2ohBGHvOzDglYcV',
+  accessToken: 'EAAPWvX7lt4UBO2MIrDqbrM1cZAXw1HbBnB2ZCYQkUdazvXu4ZBzvJ3D8Eu59wUtfF33sr4CfVQ58ZAfshvQococ1if0sEFqvnxaX8lKIE7aK4tbveGtZCjaMNjtSNAvMNdireAay8OPssswXDbxhS0Pf9fGcJZC8tNuxA5kIZA037jUFazFAnVx3NRxEYLGRz92',
   verifyToken: 'abcde12345'
 });
 
